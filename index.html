@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Vocab Swipe - 英単語暗記</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;900&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+        }
+
+        html {
+            height: 100vh;
+            height: 100dvh; /* Dynamic viewport height for mobile */
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+        }
+
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #1a1a1a;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --color-know: #00ff88;
+            --color-unknown: #ff4444;
+            --card-bg: #1e1e1e;
+            --shadow-card: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        body {
+            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow: hidden;
+            height: 100vh;
+            height: 100dvh;
+            width: 100vw;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            touch-action: none;
+        }
+
+        /* Background gradient effect */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 50% 50%, rgba(0, 255, 136, 0.03) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(255, 68, 68, 0.03) 0%, transparent 50%);
+            animation: gradientShift 15s ease infinite;
+            pointer-events: none;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            50% { transform: translate(-5%, -5%) rotate(5deg); }
+        }
+
+        #app {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Progress bar */
+        .progress-container {
+            position: absolute;
+            top: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 400px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: var(--bg-secondary);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--color-know), var(--color-unknown));
+            transition: width 0.3s ease;
+            border-radius: 2px;
+        }
+
+        .progress-text {
+            text-align: center;
+            margin-top: 12px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            letter-spacing: 0.5px;
+        }
+
+        /* Card container */
+        .card-container {
+            position: relative;
+            width: 100%;
+            max-width: 480px;
+            height: 65vh;
+            max-height: 600px;
+            perspective: 1000px;
+            margin-top: -40px;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .card {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: var(--card-bg);
+            border-radius: 32px;
+            box-shadow: var(--shadow-card);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            padding: 50px 40px 60px 40px;
+            cursor: grab;
+            user-select: none;
+            touch-action: none;
+            will-change: transform;
+            transform: translate(0, 0) rotate(0deg);
+        }
+
+        .card:active {
+            cursor: grabbing;
+        }
+
+        .card.dragging {
+            transition: none !important;
+        }
+
+        .card-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 24px;
+            width: 100%;
+        }
+
+        .card-front, .card-back {
+            position: relative;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            transition: opacity 0.2s ease;
+        }
+
+        .card-back {
+            opacity: 0;
+            max-height: 0;
+            overflow: hidden;
+            transition: opacity 0.2s ease, max-height 0.2s ease;
+        }
+
+        .card.flipped .card-back {
+            opacity: 1;
+            max-height: 300px;
+        }
+
+        .english-word {
+            font-size: clamp(48px, 10vw, 80px);
+            font-weight: 900;
+            text-align: center;
+            line-height: 1.1;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, var(--text-primary), var(--text-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+        }
+
+        .japanese-word {
+            font-size: clamp(24px, 5vw, 40px);
+            font-weight: 700;
+            text-align: center;
+            line-height: 1.4;
+            color: var(--text-primary);
+            margin-top: 8px;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+        }
+
+        .tap-hint {
+            position: absolute;
+            bottom: 40px;
+            font-size: 14px;
+            color: var(--text-secondary);
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            transition: opacity 0.2s ease;
+        }
+
+        .card.flipped .tap-hint {
+            opacity: 0;
+        }
+
+        /* Swipe overlay effects */
+        .swipe-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 32px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            gap: 16px;
+            padding-top: 30px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.1s ease;
+        }
+
+        .swipe-overlay.know {
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.2), rgba(0, 255, 136, 0.05));
+            color: var(--color-know);
+        }
+
+        .swipe-overlay.unknown {
+            background: linear-gradient(135deg, rgba(255, 68, 68, 0.2), rgba(255, 68, 68, 0.05));
+            color: var(--color-unknown);
+        }
+
+        .swipe-icon {
+            font-size: 96px;
+            font-weight: 900;
+            line-height: 1;
+        }
+
+        /* Completion screen */
+        .completion-screen {
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            max-width: 480px;
+            padding: 40px;
+        }
+
+        .completion-screen.active {
+            display: flex;
+        }
+
+        .completion-icon {
+            font-size: 96px;
+            margin-bottom: 32px;
+            animation: bounce 0.6s ease;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        .completion-title {
+            font-size: 48px;
+            font-weight: 900;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, var(--color-know), var(--color-unknown));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .completion-stats {
+            font-size: 20px;
+            color: var(--text-secondary);
+            margin-bottom: 40px;
+            line-height: 1.6;
+        }
+
+        .restart-btn {
+            padding: 20px 48px;
+            font-size: 18px;
+            font-weight: 700;
+            background: var(--color-know);
+            color: #0a0a0a;
+            border: none;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 8px 24px rgba(0, 255, 136, 0.3);
+        }
+
+        .restart-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 32px rgba(0, 255, 136, 0.4);
+        }
+
+        .restart-btn:active {
+            transform: translateY(0);
+        }
+
+        /* Loading state */
+        .loading {
+            font-size: 24px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        /* Start screen */
+        .start-screen {
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            max-width: 480px;
+            padding: 40px;
+        }
+
+        .start-screen.active {
+            display: flex;
+        }
+
+        .start-title {
+            font-size: 64px;
+            font-weight: 900;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, var(--color-know), var(--color-unknown));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1.1;
+        }
+
+        .start-subtitle {
+            font-size: 20px;
+            color: var(--text-secondary);
+            margin-bottom: 48px;
+            line-height: 1.6;
+        }
+
+        .start-btn {
+            padding: 24px 64px;
+            font-size: 20px;
+            font-weight: 700;
+            background: var(--color-know);
+            color: #0a0a0a;
+            border: none;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 8px 24px rgba(0, 255, 136, 0.3);
+        }
+
+        .start-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 32px rgba(0, 255, 136, 0.4);
+        }
+
+        .start-btn:active {
+            transform: translateY(0);
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .card-container {
+                height: 60vh;
+            }
+        }
+
+        @media (orientation: landscape) and (max-height: 600px) {
+            .card-container {
+                height: 70vh;
+                max-height: 500px;
+            }
+
+            .progress-container {
+                top: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="loading">Loading...</div>
+    </div>
+
+    <script>
+        // Word data - Replace with your own vocabulary
+        const WORD_DATA = `
+excavation,発掘
+exemplary,模範的な、見せしめの
+sluggish,(経済などが)停滞ぎみの；〈人・物などが〉反応が鈍い
+prevalent,流行する、流行っている
+outreach,奉仕［支援］活動
+irritant,刺激物；いらいらさせるもの
+blurry,ぼやけた、曖昧な
+edge,(～に対する）優位、有利さ
+fiscal,財務上の
+honored,名誉ある、光栄に思って
+specialize in,専攻する、専門にする
+agenda,議題、案件
+fare,運賃、料金
+courier,配達員、添乗員、案内人、ガイド
+landlord,家主
+safety precaution,安全順守事項
+special offer,大安売りの品、特価提供、タイムサービス
+ventilation,換気、風通し
+reach,達する、到達する
+payroll,給与支払名簿、給与
+attraction,観光名所、魅力
+redecorate,改装する
+inventory,在庫表、棚卸し表
+registration,登録、記載
+cuisine,料理(法)
+transfer,移動 / 移す、動かす、運ぶ
+budget,予算に合った、手頃な / 予算、費用
+tenant,賃借人
+stay tuned,乞うご期待
+blueprint,青写真、設計図
+flood,洪水、氾濫
+as of,～の時点で；（～の日付）をもって、（ある時点を基点として）それ以後は
+deposit,預ける、預金する / 手付金、預金(高)
+stopover,立ち寄る場所、短期滞在
+detour,回り道、迂回路
+entree,主要料理、アントレー
+expense,出費、費用
+moderate,(気候など)穏やかな
+floor plan,(建物の)間取り図
+cargo,貨物、積み荷
+residence,住宅、居住
+be in charge of,～を担当する
+enroll,入会する
+soar,舞い上がる、高く上がる、高まる
+dairy product,乳製品
+spoil,台なしにする、腐らせる
+corporation,株式会社、法人
+certificate,証明書、資格
+sponsor,スポンサー、後援者
+property,財産、建物
+wonder,知りたいと思う
+necessarily,必ず、必然的に
+obstacle,障害物
+obstruct,ふさぐ、遮る
+proceed,進む (to), 進行する (with)、続行する
+notable,注目に値する、著しい、顕著な
+interfere,妨げる、～の邪魔をする(with)
+gratitude,感謝、謝意
+interrupt,中断する、遮る
+reclaim,(～を）取り戻す、返してもらう、回収する
+inaccuracy,間違い、不正確さ
+unprecedented,前例のない
+honor,名誉、尊敬、光栄 / 名誉を与える、尊敬する
+brief,～に事前に指示、情報を与える / 手短な、簡単な
+apparent,見たところ～らしい；（～にとって）明らかな
+bankrupt,破産した
+consolidate,一つにまとめる、固める、強化する
+alteration,変更、改築
+assignment,割り当てられた仕事
+apparently,見たところでは、どうも
+appraisal,評価
+appoint,任命する
+freshness,新鮮さ、新鮮味
+issue,発行する / 問題、論点
+measure,測定する / 方策、計量
+accidentally,偶然；思いがけなく
+review,検討する
+delighted,喜んでいる
+patience,忍耐、忍耐力
+overseas,海外へ
+rush,急ぐこと、殺到 / 急ぐ`.trim();
+
+        // Parse word data
+        function parseWordData(data) {
+            return data.split('\n')
+                .map(line => line.trim())
+                .filter(line => line.length > 0)
+                .map(line => {
+                    const parts = line.split(',');
+                    return {
+                        english: parts[0].trim(),
+                        japanese: parts.slice(1).join(',').trim()
+                    };
+                });
+        }
+
+        // Storage keys
+        const STORAGE_KEYS = {
+            MASTERED: 'vocab_mastered',
+            STRUGGLING: 'vocab_struggling'
+        };
+
+        class VocabApp {
+            constructor() {
+                this.allWords = parseWordData(WORD_DATA);
+                this.masteredWords = this.loadFromStorage(STORAGE_KEYS.MASTERED);
+                this.strugglingWords = this.loadFromStorage(STORAGE_KEYS.STRUGGLING);
+                
+                this.currentQueue = [];
+                this.currentIndex = 0;
+                this.reappearQueue = [];
+                this.newWordsSinceReappear = 0;
+                
+                this.isDragging = false;
+                this.startX = 0;
+                this.startY = 0;
+                this.currentX = 0;
+                this.currentY = 0;
+                this.isFlipped = false;
+                this.dragStartTime = 0;
+                this.hasMoved = false;
+                this.isStarted = false;
+
+                this.synth = window.speechSynthesis;
+                
+                this.initializeQueue();
+                this.render();
+            }
+
+            loadFromStorage(key) {
+                try {
+                    const data = localStorage.getItem(key);
+                    return data ? new Set(JSON.parse(data)) : new Set();
+                } catch (e) {
+                    return new Set();
+                }
+            }
+
+            saveToStorage(key, set) {
+                try {
+                    localStorage.setItem(key, JSON.stringify([...set]));
+                } catch (e) {
+                    console.error('Failed to save to storage:', e);
+                }
+            }
+
+            initializeQueue() {
+                // Get words that are not mastered
+                const unmastered = this.allWords.filter(word => 
+                    !this.masteredWords.has(word.english)
+                );
+
+                // Prioritize struggling words
+                const struggling = unmastered.filter(word => 
+                    this.strugglingWords.has(word.english)
+                );
+                const others = unmastered.filter(word => 
+                    !this.strugglingWords.has(word.english)
+                );
+
+                // Shuffle arrays
+                this.shuffle(struggling);
+                this.shuffle(others);
+
+                // Combine: struggling words first, then others
+                this.currentQueue = [...struggling, ...others];
+                this.currentIndex = 0;
+                this.reappearQueue = [];
+                this.newWordsSinceReappear = 0;
+            }
+
+            shuffle(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+            }
+
+            getCurrentWord() {
+                if (this.currentIndex >= this.currentQueue.length) {
+                    return null;
+                }
+                return this.currentQueue[this.currentIndex];
+            }
+
+            async speak(text) {
+                if (this.synth.speaking) {
+                    this.synth.cancel();
+                    // Wait for cancellation to complete
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                }
+
+                try {
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.lang = 'en-US';
+                    utterance.rate = 0.9;
+                    utterance.pitch = 1.0;
+                    
+                    utterance.onerror = (event) => {
+                        console.error('Speech synthesis error:', event);
+                    };
+                    
+                    this.synth.speak(utterance);
+                } catch (error) {
+                    console.error('Failed to speak:', error);
+                }
+            }
+
+            vibrate() {
+                if (navigator.vibrate) {
+                    navigator.vibrate(50);
+                }
+            }
+
+            markAsKnown() {
+                const word = this.getCurrentWord();
+                if (!word) return;
+
+                this.masteredWords.add(word.english);
+                this.strugglingWords.delete(word.english);
+                
+                this.saveToStorage(STORAGE_KEYS.MASTERED, this.masteredWords);
+                this.saveToStorage(STORAGE_KEYS.STRUGGLING, this.strugglingWords);
+
+                this.vibrate();
+                this.nextWord();
+            }
+
+            markAsUnknown() {
+                const word = this.getCurrentWord();
+                if (!word) return;
+
+                this.strugglingWords.add(word.english);
+                this.saveToStorage(STORAGE_KEYS.STRUGGLING, this.strugglingWords);
+
+                // Add to reappear queue
+                this.reappearQueue.push(word);
+
+                this.vibrate();
+                this.nextWord();
+            }
+
+            nextWord() {
+                this.currentIndex++;
+                this.newWordsSinceReappear++;
+                this.isFlipped = false;
+
+                // Check if we need to reappear struggling words
+                if (this.newWordsSinceReappear >= 3 && this.reappearQueue.length > 0) {
+                    const reappearWord = this.reappearQueue.shift();
+                    this.currentQueue.splice(this.currentIndex + 3, 0, reappearWord);
+                    this.newWordsSinceReappear = 0;
+                }
+
+                // If current queue is exhausted, check if there are struggling words to reappear
+                if (!this.getCurrentWord()) {
+                    if (this.reappearQueue.length > 0) {
+                        // Add all remaining struggling words back to the queue
+                        while (this.reappearQueue.length > 0) {
+                            this.currentQueue.push(this.reappearQueue.shift());
+                        }
+                        this.newWordsSinceReappear = 0;
+                    }
+                }
+
+                if (this.getCurrentWord()) {
+                    this.render();
+                } else {
+                    this.showCompletion();
+                }
+            }
+
+            flipCard() {
+                this.isFlipped = !this.isFlipped;
+                this.render();
+            }
+
+            handleTouchStart(e) {
+                if (e.target.closest('.control-btn')) return;
+                
+                const card = document.querySelector('.card');
+                if (!card) return;
+
+                this.isDragging = false;
+                this.hasMoved = false;
+                this.dragStartTime = Date.now();
+                this.startX = e.touches ? e.touches[0].clientX : e.clientX;
+                this.startY = e.touches ? e.touches[0].clientY : e.clientY;
+                
+                card.classList.add('dragging');
+
+                // タップ時に即座に和訳を表示
+                if (!this.isFlipped) {
+                    this.isFlipped = true;
+                    card.classList.add('flipped');
+                }
+            }
+
+            handleTouchMove(e) {
+                e.preventDefault();
+                
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                
+                this.currentX = clientX - this.startX;
+                this.currentY = clientY - this.startY;
+
+                const moveDistance = Math.sqrt(this.currentX * this.currentX + this.currentY * this.currentY);
+                
+                // 移動距離が5px以上ならドラッグ判定
+                if (moveDistance > 5) {
+                    this.isDragging = true;
+                    this.hasMoved = true;
+                }
+
+                if (!this.isDragging) return;
+
+                const card = document.querySelector('.card');
+                if (!card) return;
+
+                // 円弧状の動き: 左右に動くと自動的に下に沈む
+                const horizontalMove = this.currentX;
+                const rotation = horizontalMove / 20;
+                
+                // 放物線を描くように下に沈む（左右の移動量に応じて）
+                const arcDepth = Math.abs(horizontalMove) * 0.3; // 係数で沈み具合を調整
+                const verticalMove = arcDepth;
+                
+                card.style.transform = `translate(${horizontalMove}px, ${verticalMove}px) rotate(${rotation}deg)`;
+                
+                const overlay = card.querySelector('.swipe-overlay');
+                const swipeIcon = overlay.querySelector('.swipe-icon');
+                const opacity = Math.min(Math.abs(horizontalMove) / 60, 1);
+                
+                if (horizontalMove > 30) {
+                    overlay.className = 'swipe-overlay know';
+                    overlay.style.opacity = opacity;
+                    swipeIcon.textContent = '○';
+                } else if (horizontalMove < -30) {
+                    overlay.className = 'swipe-overlay unknown';
+                    overlay.style.opacity = opacity;
+                    swipeIcon.textContent = '✖️';
+                } else {
+                    overlay.style.opacity = 0;
+                }
+            }
+
+            handleTouchEnd() {
+                const card = document.querySelector('.card');
+                if (!card) return;
+
+                card.classList.remove('dragging');
+
+                // ドラッグしていなかった場合は何もしない（すでにtouchstartで和訳表示済み）
+                if (!this.hasMoved) {
+                    this.isDragging = false;
+                    this.currentX = 0;
+                    this.currentY = 0;
+                    return;
+                }
+
+                if (!this.isDragging) return;
+                
+                this.isDragging = false;
+
+                if (this.currentX > 60) {
+                    // Swipe right - Know
+                    card.style.transition = 'transform 0.3s ease';
+                    card.style.transform = `translateX(${window.innerWidth}px) rotate(30deg)`;
+                    setTimeout(() => this.markAsKnown(), 100);
+                } else if (this.currentX < -60) {
+                    // Swipe left - Don't know
+                    card.style.transition = 'transform 0.3s ease';
+                    card.style.transform = `translateX(-${window.innerWidth}px) rotate(-30deg)`;
+                    setTimeout(() => this.markAsUnknown(), 100);
+                } else {
+                    // Reset position
+                    card.style.transition = 'transform 0.2s ease';
+                    card.style.transform = 'translate(0, 0) rotate(0deg)';
+                    card.querySelector('.swipe-overlay').style.opacity = 0;
+                }
+
+                this.currentX = 0;
+                this.currentY = 0;
+            }
+
+            restart() {
+                this.isStarted = true;
+                // Clear mastered and struggling words for fresh start
+                this.masteredWords.clear();
+                this.strugglingWords.clear();
+                this.saveToStorage(STORAGE_KEYS.MASTERED, this.masteredWords);
+                this.saveToStorage(STORAGE_KEYS.STRUGGLING, this.strugglingWords);
+                this.initializeQueue();
+                this.render();
+                setTimeout(() => {
+                    const word = this.getCurrentWord();
+                    if (word) this.speak(word.english);
+                }, 200);
+            }
+
+            start() {
+                this.isStarted = true;
+                this.render();
+                setTimeout(() => {
+                    const word = this.getCurrentWord();
+                    if (word) this.speak(word.english);
+                }, 200);
+            }
+
+            showCompletion() {
+                const totalWords = this.allWords.length;
+                const masteredCount = this.masteredWords.size;
+                const strugglingCount = this.strugglingWords.size;
+
+                document.getElementById('app').innerHTML = `
+                    <div class="completion-screen active">
+                        <div class="completion-icon">🎉</div>
+                        <div class="completion-title">Complete！</div>
+                        <div class="completion-stats">
+                            習得済み: ${masteredCount} / ${totalWords}<br>
+                            要復習: ${strugglingCount}
+                        </div>
+                        <button class="restart-btn" onclick="app.restart()">もう一度</button>
+                    </div>
+                `;
+            }
+
+            render() {
+                const word = this.getCurrentWord();
+                
+                if (!word) {
+                    this.showCompletion();
+                    return;
+                }
+
+                // Show start screen if not started yet
+                if (!this.isStarted) {
+                    document.getElementById('app').innerHTML = `
+                        <div class="start-screen active">
+                            <div class="start-title">Vocab Swipe</div>
+                            <div class="start-subtitle">
+                                英単語を見て、聞いて、覚える<br>
+                                Tinderライクな学習体験
+                            </div>
+                            <button class="start-btn" onclick="app.start()">学習を開始</button>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const totalWords = this.currentQueue.length;
+                const progress = (this.currentIndex / totalWords) * 100;
+
+                document.getElementById('app').innerHTML = `
+                    <div class="progress-container">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${progress}%"></div>
+                        </div>
+                        <div class="progress-text">${this.currentIndex + 1} / ${totalWords}</div>
+                    </div>
+
+                    <div class="card-container">
+                        <div class="card ${this.isFlipped ? 'flipped' : ''}">
+                            <div class="card-content">
+                                <div class="card-front">
+                                    <div class="english-word">${word.english}</div>
+                                </div>
+                                <div class="card-back">
+                                    <div class="japanese-word">${word.japanese}</div>
+                                </div>
+                            </div>
+                            <div class="tap-hint">タップして意味を表示</div>
+                            <div class="swipe-overlay">
+                                <div class="swipe-icon"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Setup event listeners
+                const card = document.querySelector('.card');
+                
+                // Touch events
+                card.addEventListener('touchstart', (e) => this.handleTouchStart(e), { passive: false });
+                card.addEventListener('touchmove', (e) => this.handleTouchMove(e), { passive: false });
+                card.addEventListener('touchend', () => this.handleTouchEnd());
+                
+                // Mouse events
+                card.addEventListener('mousedown', (e) => this.handleTouchStart(e));
+                document.addEventListener('mousemove', (e) => this.handleTouchMove(e));
+                document.addEventListener('mouseup', () => this.handleTouchEnd());
+
+                // Speak the word
+                setTimeout(() => this.speak(word.english), 200);
+            }
+        }
+
+        // Initialize app
+        let app;
+        window.addEventListener('DOMContentLoaded', () => {
+            app = new VocabApp();
+        });
+    </script>
+</body>
+</html>
