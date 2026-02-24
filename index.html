@@ -94,9 +94,10 @@
             height: 100%;
             display: flex;
             flex-direction: column;
-            justify-content: center;
+            justify-content: flex-start;
             align-items: center;
-            padding: var(--md-sys-spacing-2);
+            padding: var(--md-sys-spacing-3) var(--md-sys-spacing-2) var(--md-sys-spacing-3);
+            gap: var(--md-sys-spacing-3);
             position: relative;
         }
 
@@ -106,10 +107,9 @@
             position: relative;
             width: 100%;
             max-width: 480px;
-            height: 65vh;
-            max-height: 600px;
+            flex: 1;
+            min-height: 0;
             perspective: 1000px;
-            margin-top: 0;
             user-select: none;
             -webkit-user-select: none;
         }
@@ -118,18 +118,20 @@
             position: absolute;
             width: 100%;
             height: 100%;
-            background: var(--md-sys-color-surface-container);
+            background: #FFFFFF;
             border-radius: var(--md-sys-shape-corner-large);
+            box-shadow: 0 2px 16px rgba(0, 0, 0, 0.08);
             display: flex;
             flex-direction: column;
             justify-content: flex-start;
             align-items: center;
-            padding: var(--md-sys-spacing-6) var(--md-sys-spacing-4) var(--md-sys-spacing-6) var(--md-sys-spacing-4);
+            padding: var(--md-sys-spacing-6) var(--md-sys-spacing-4) var(--md-sys-spacing-4);
             cursor: grab;
             user-select: none;
             touch-action: none;
             will-change: transform;
             transform: translate(0, 0) rotate(0deg);
+            overflow: hidden;
         }
 
         .card:active {
@@ -140,47 +142,33 @@
             transition: none !important;
         }
 
-        .card-content {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: var(--md-sys-spacing-3);
-            width: 100%;
-        }
-
-        .card-front, .card-back {
-            position: relative;
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-start;
-            align-items: center;
-            transition: opacity var(--md-sys-motion-duration-short) var(--md-sys-motion-easing-standard);
-        }
-
         .card-back {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
             opacity: 0;
             max-height: 0;
             overflow: hidden;
             transition: opacity var(--md-sys-motion-duration-short) var(--md-sys-motion-easing-standard),
-                        max-height var(--md-sys-motion-duration-short) var(--md-sys-motion-easing-standard);
+                        max-height var(--md-sys-motion-duration-medium) var(--md-sys-motion-easing-standard);
         }
 
         .card.flipped .card-back {
             opacity: 1;
-            max-height: 300px;
+            max-height: 500px;
         }
 
         /* Typography - M3 Type Scale */
         .english-word {
             /* Headline Large */
-            font-size: clamp(32px, 8vw, 64px);
-            font-weight: 500;
+            font-size: clamp(32px, 8vw, 56px);
+            font-weight: 700;
             text-align: center;
             line-height: 1.2;
             letter-spacing: 0;
             color: var(--md-sys-color-on-surface);
-            margin-bottom: var(--md-sys-spacing-1);
+            margin-bottom: var(--md-sys-spacing-4);
             user-select: none;
             -webkit-user-select: none;
             -moz-user-select: none;
@@ -190,12 +178,12 @@
         .japanese-word {
             /* Body Large */
             font-size: clamp(18px, 4vw, 24px);
-            font-weight: 400;
+            font-weight: 500;
             text-align: center;
             line-height: 1.5;
             letter-spacing: 0.5px;
-            color: var(--md-sys-color-on-surface-variant);
-            margin-top: var(--md-sys-spacing-1);
+            color: var(--md-sys-color-on-surface);
+            margin-bottom: var(--md-sys-spacing-2);
             user-select: none;
             -webkit-user-select: none;
             -moz-user-select: none;
@@ -228,19 +216,56 @@
             color: var(--md-sys-color-on-surface-variant);
         }
 
-        .tap-hint {
-            /* Label Large */
-            position: absolute;
-            bottom: var(--md-sys-spacing-4);
-            font-size: 14px;
-            color: var(--md-sys-color-on-surface-variant);
+        /* Action Buttons */
+        .action-buttons {
+            display: flex;
+            gap: 48px;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            padding-bottom: var(--md-sys-spacing-1);
+        }
+
+        .action-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .action-btn-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
             font-weight: 500;
-            letter-spacing: 0.1px;
             transition: opacity var(--md-sys-motion-duration-short) var(--md-sys-motion-easing-standard);
         }
 
-        .card.flipped .tap-hint {
-            opacity: 0;
+        .action-btn:active .action-btn-icon {
+            opacity: 0.6;
+        }
+
+        .unknown-btn .action-btn-icon {
+            background: var(--md-sys-color-surface-container-high);
+            color: var(--md-sys-color-on-surface-variant);
+        }
+
+        .known-btn .action-btn-icon {
+            border: 1.5px solid var(--md-sys-color-on-surface-variant);
+            color: var(--md-sys-color-on-surface-variant);
+        }
+
+        .action-btn-label {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--md-sys-color-on-surface-variant);
+            letter-spacing: 0.1px;
         }
 
         /* Swipe Overlay */
@@ -418,22 +443,15 @@
         }
 
         /* Responsive Adjustments */
-        @media (max-width: 768px) {
-            .card-container {
-                height: 60vh;
-            }
-
-            #app {
-                padding: var(--md-sys-spacing-2);
-            }
-        }
-
         @media (orientation: landscape) and (max-height: 600px) {
-            .card-container {
-                height: 70vh;
-                max-height: 500px;
+            #app {
+                padding: var(--md-sys-spacing-1) var(--md-sys-spacing-2);
+                gap: var(--md-sys-spacing-1);
             }
 
+            .action-buttons {
+                padding-bottom: 0;
+            }
         }
     </style>
 </head>
@@ -988,19 +1006,24 @@ set about,着手する (97%),「周囲(about)」に「配置する(set)」。特
                 document.getElementById('app').innerHTML = `
                     <div class="card-container">
                         <div class="card ${this.isFlipped ? 'flipped' : ''}">
-                            <div class="card-content">
-                                <div class="card-front">
-                                    <div class="english-word">${word.english}</div>
-                                </div>
-                                <div class="card-back">
-                                    <div class="japanese-word">${word.japanese}</div>
-                                    ${word.tips ? `<div class="tips-section"><span class="tips-label">TIPS</span><div class="tips-text">${word.tips}</div></div>` : ''}
-                                </div>
+                            <div class="english-word">${word.english}</div>
+                            <div class="card-back">
+                                <div class="japanese-word">${word.japanese}</div>
+                                ${word.tips ? `<div class="tips-section"><span class="tips-label">TIPS</span><div class="tips-text">${word.tips}</div></div>` : ''}
                             </div>
-                            <div class="tap-hint">タップして意味を表示</div>
                             <div class="swipe-overlay">
                                 <div class="swipe-icon"></div>
                             </div>
+                        </div>
+                    </div>
+                    <div class="action-buttons">
+                        <div class="action-btn unknown-btn" onclick="app.markAsUnknown()">
+                            <div class="action-btn-icon">?</div>
+                            <div class="action-btn-label">知らない</div>
+                        </div>
+                        <div class="action-btn known-btn" onclick="app.markAsKnown()">
+                            <div class="action-btn-icon">○</div>
+                            <div class="action-btn-label">知っている</div>
                         </div>
                     </div>
                 `;
