@@ -163,6 +163,11 @@
             pointer-events: none;
         }
 
+        .card.dragging .japanese-word,
+        .card.dragging .tips-section {
+            transition: none !important;
+        }
+
         /* Typography - M3 Type Scale */
         .english-word {
             /* Headline Large */
@@ -883,6 +888,9 @@ set about,着手する (97%),【周囲を配置して始める】「周囲(about
 
                 const moveDistance = Math.sqrt(this.currentX * this.currentX + this.currentY * this.currentY);
                 
+                const card = document.querySelector('.card');
+                if (!card) return;
+
                 // 移動距離が5px以上ならドラッグ判定
                 if (moveDistance > 5) {
                     this.isDragging = true;
@@ -891,17 +899,14 @@ set about,着手する (97%),【周囲を配置して始める】「周囲(about
 
                 if (!this.isDragging) return;
 
-                const card = document.querySelector('.card');
-                if (!card) return;
-
                 // 円弧状の動き: 左右に動くと自動的に下に沈む
                 const horizontalMove = this.currentX;
                 const rotation = horizontalMove / 20;
-                
+
                 // 放物線を描くように下に沈む（左右の移動量に応じて）
                 const arcDepth = Math.abs(horizontalMove) * 0.3; // 係数で沈み具合を調整
                 const verticalMove = arcDepth;
-                
+
                 card.style.transform = `translate(${horizontalMove}px, ${verticalMove}px) rotate(${rotation}deg)`;
                 
                 const overlay = card.querySelector('.swipe-overlay');
