@@ -967,10 +967,6 @@ set about,着手する (97%),【周囲を配置して始める】「周囲(about
             start() {
                 this.isStarted = true;
                 this.render();
-                setTimeout(() => {
-                    const word = this.getCurrentWord();
-                    if (word) this.speak(word.english);
-                }, 200);
             }
 
             showCompletion() {
